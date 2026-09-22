@@ -53,6 +53,16 @@ final class GenericList implements IList
         ++$this->version;
     }
 
+    public function removeRange(int $index, int $count): void
+    {
+        $this->assertRange($index, $count);
+        if ($count === 0) {
+            return;
+        }
+        array_splice($this->items, $index, $count);
+        ++$this->version;
+    }
+
     /** @param T $item */
     public function insert(int $index, mixed $item): void
     {
@@ -61,6 +71,28 @@ final class GenericList implements IList
         }
         array_splice($this->items, $index, 0, [$item]);
         ++$this->version;
+    }
+
+    public function insertRange(int $index, iterable $items): void
+    {
+        if ($index < 0 || $index > count($this->items)) {
+            throw new OutOfRangeException("List index out of range: {$index}");
+        }
+        $inserted = is_array($items)
+            ? array_values($items)
+            : array_values(iterator_to_array($items, false));
+        if ($inserted === []) {
+            return;
+        }
+        array_splice($this->items, $index, 0, $inserted);
+        ++$this->version;
+    }
+
+    /** @return self<T> */
+    public function getRange(int $index, int $count): self
+    {
+        $this->assertRange($index, $count);
+        return new self(array_slice($this->items, $index, $count));
     }
 
     public function clear(): void
@@ -172,6 +204,13 @@ final class GenericList implements IList
     {
         if ($index < 0 || $index >= count($this->items)) {
             throw new OutOfRangeException("List index out of range: {$index}");
+        }
+    }
+
+    private function assertRange(int $index, int $count): void
+    {
+        if ($index < 0 || $count < 0 || $index > count($this->items) - $count) {
+            throw new OutOfRangeException("Invalid list range: index {$index}, count {$count}");
         }
     }
 }

@@ -25,6 +25,22 @@ Streaming operators include `where`, `select`, `selectMany`, `skip`, `take`,
 `chunk`. Operators which require a complete view of the sequence, such as
 `orderBy`, `reverse`, and `takeLast`, buffer their input when enumerated.
 
+The API also includes the .NET-style aggregate and set operators `min`, `max`,
+`minBy`, `maxBy`, `except`, `intersect`, `union`, and `shuffle`. Relational
+`join` combines matching outer and inner elements by key:
+
+```php
+$summaries = Enumerable::from($users)->join(
+    $orders,
+    fn (array $user): int => $user['id'],
+    fn (array $order): int => $order['userId'],
+    fn (array $user, array $order): array => [
+        'name' => $user['name'],
+        'total' => $order['total'],
+    ],
+);
+```
+
 Call `asEnumerable()` on an `IQueryable` to execute the provider-backed part
 first and continue with callback-based, in-memory operators.
 
@@ -41,6 +57,9 @@ use PhpLinq\Collections\Generic\Stack;
 $list = new GenericList([1, 2]);
 $list->add(3);
 $list->insert(0, 0);
+$list->insertRange(1, [10, 20]);
+$slice = $list->getRange(1, 2);
+$list->removeRange(1, 2);
 
 $stack = new Stack();
 $stack->push('job');

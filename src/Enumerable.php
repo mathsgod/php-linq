@@ -5,6 +5,9 @@ declare(strict_types=1);
 namespace PhpLinq;
 
 use Closure;
+use PhpLinq\Collections\Generic\DefaultEqualityComparer;
+use PhpLinq\Collections\Generic\EqualityComparer;
+use PhpLinq\Collections\Generic\HashSet;
 use Traversable;
 
 /** @template T @implements IEnumerable<T> */
@@ -363,6 +366,110 @@ class Enumerable implements IEnumerable
         return $sum / $count;
     }
 
+    public function min(?callable $selector = null, ?callable $comparer = null): mixed
+    {
+        return $this->extreme($selector, $comparer, false, false);
+    }
+
+    public function max(?callable $selector = null, ?callable $comparer = null): mixed
+    {
+        return $this->extreme($selector, $comparer, true, false);
+    }
+
+    public function minBy(callable $keySelector, ?callable $comparer = null): mixed
+    {
+        return $this->extreme($keySelector, $comparer, false, true);
+    }
+
+    public function maxBy(callable $keySelector, ?callable $comparer = null): mixed
+    {
+        return $this->extreme($keySelector, $comparer, true, true);
+    }
+
+    public function except(iterable $second, ?EqualityComparer $comparer = null): IEnumerable
+    {
+        $source = $this;
+        return new self(static function () use ($source, $second, $comparer): iterable {
+            $excluded = new HashSet($second, $comparer);
+            foreach ($source as $item) {
+                if ($excluded->tryAdd($item)) {
+                    yield $item;
+                }
+            }
+        });
+    }
+
+    public function intersect(iterable $second, ?EqualityComparer $comparer = null): IEnumerable
+    {
+        $source = $this;
+        return new self(static function () use ($source, $second, $comparer): iterable {
+            $remaining = new HashSet($second, $comparer);
+            foreach ($source as $item) {
+                if ($remaining->remove($item)) {
+                    yield $item;
+                }
+            }
+        });
+    }
+
+    public function union(iterable $second, ?EqualityComparer $comparer = null): IEnumerable
+    {
+        $source = $this;
+        return new self(static function () use ($source, $second, $comparer): iterable {
+            $seen = new HashSet([], $comparer);
+            foreach ([$source, $second] as $sequence) {
+                foreach ($sequence as $item) {
+                    if ($seen->tryAdd($item)) {
+                        yield $item;
+                    }
+                }
+            }
+        });
+    }
+
+    public function shuffle(): IEnumerable
+    {
+        $source = $this;
+        return new self(static function () use ($source): iterable {
+            $items = $source->toArray();
+            shuffle($items);
+            yield from $items;
+        });
+    }
+
+    public function join(
+        iterable $inner,
+        callable $outerKeySelector,
+        callable $innerKeySelector,
+        callable $resultSelector,
+        ?EqualityComparer $comparer = null,
+    ): IEnumerable {
+        $source = $this;
+        return new self(static function () use (
+            $source,
+            $inner,
+            $outerKeySelector,
+            $innerKeySelector,
+            $resultSelector,
+            $comparer,
+        ): iterable {
+            $comparer ??= new DefaultEqualityComparer();
+            $lookup = [];
+            foreach ($inner as $innerItem) {
+                $key = $innerKeySelector($innerItem);
+                $lookup[$comparer->hash($key)][] = ['key' => $key, 'item' => $innerItem];
+            }
+            foreach ($source as $outerItem) {
+                $outerKey = $outerKeySelector($outerItem);
+                foreach ($lookup[$comparer->hash($outerKey)] ?? [] as $candidate) {
+                    if ($comparer->equals($outerKey, $candidate['key'])) {
+                        yield $resultSelector($outerItem, $candidate['item']);
+                    }
+                }
+            }
+        });
+    }
+
     public function aggregate(callable $accumulator, mixed $seed = null): mixed
     {
         $hasSeed = func_num_args() >= 2;
@@ -384,6 +491,39 @@ class Enumerable implements IEnumerable
     public function toArray(): array
     {
         return iterator_to_array($this->getIterator(), false);
+    }
+
+    private function extreme(
+        ?callable $selector,
+        ?callable $comparer,
+        bool $maximum,
+        bool $returnItem,
+    ): mixed {
+        $selector ??= static fn (mixed $item): mixed => $item;
+        $comparer ??= static fn (mixed $left, mixed $right): int => $left <=> $right;
+        $found = false;
+        $bestItem = null;
+        $bestKey = null;
+
+        foreach ($this as $item) {
+            $key = $selector($item);
+            if (!$found) {
+                $found = true;
+                $bestItem = $item;
+                $bestKey = $key;
+                continue;
+            }
+            $comparison = $comparer($key, $bestKey);
+            if ($maximum ? $comparison > 0 : $comparison < 0) {
+                $bestItem = $item;
+                $bestKey = $key;
+            }
+        }
+
+        if (!$found) {
+            throw new \UnderflowException('The sequence contains no elements.');
+        }
+        return $returnItem ? $bestItem : $bestKey;
     }
 
     private static function assertNonNegative(int $count): void

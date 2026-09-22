@@ -8,6 +8,7 @@ use PhpLinq\Enumerable;
 use PhpLinq\Expr;
 use PhpLinq\InMemoryQueryProvider;
 use PhpLinq\Queryable;
+use PhpLinq\Collections\Generic\EqualityComparer;
 use PHPUnit\Framework\TestCase;
 use UnderflowException;
 use UnexpectedValueException;
@@ -147,6 +148,99 @@ final class EnumerableTest extends TestCase
             static fn (int $sum, int $number): int => $sum + $number,
             0,
         ));
+    }
+
+    public function testMinMaxMinByAndMaxBy(): void
+    {
+        $people = Enumerable::from([
+            ['name' => 'Ada', 'age' => 36],
+            ['name' => 'Bob', 'age' => 22],
+            ['name' => 'Cara', 'age' => 41],
+        ]);
+
+        self::assertSame(22, $people->min(static fn (array $person): int => $person['age']));
+        self::assertSame(41, $people->max(static fn (array $person): int => $person['age']));
+        self::assertSame('Bob', $people->minBy(
+            static fn (array $person): int => $person['age'],
+        )['name']);
+        self::assertSame('Cara', $people->maxBy(
+            static fn (array $person): int => $person['age'],
+        )['name']);
+    }
+
+    public function testExtremesRejectEmptySequence(): void
+    {
+        $this->expectException(UnderflowException::class);
+        Enumerable::from([])->min();
+    }
+
+    public function testSetOperatorsPreserveOrderAndReturnDistinctValues(): void
+    {
+        $numbers = Enumerable::from([3, 1, 2, 2, 4]);
+
+        self::assertSame([3, 1], $numbers->except([2, 4])->toArray());
+        self::assertSame([3, 2], $numbers->intersect([2, 3, 9])->toArray());
+        self::assertSame([3, 1, 2, 4, 5], $numbers->union([2, 5, 3])->toArray());
+    }
+
+    public function testSetOperatorsAcceptCustomEqualityComparer(): void
+    {
+        $caseInsensitive = new class implements EqualityComparer {
+            public function equals(mixed $left, mixed $right): bool
+            {
+                return strtolower((string) $left) === strtolower((string) $right);
+            }
+
+            public function hash(mixed $value): string
+            {
+                return strtolower((string) $value);
+            }
+        };
+
+        self::assertSame(
+            ['Ada', 'Bob'],
+            Enumerable::from(['Ada', 'Bob'])->union(['ADA'], $caseInsensitive)->toArray(),
+        );
+    }
+
+    public function testShuffleReturnsACompletePermutation(): void
+    {
+        $source = range(1, 100);
+        $shuffled = Enumerable::from($source)->shuffle()->toArray();
+
+        self::assertCount(100, $shuffled);
+        sort($shuffled);
+        self::assertSame($source, $shuffled);
+    }
+
+    public function testRelationalJoin(): void
+    {
+        $users = Enumerable::from([
+            ['id' => 1, 'name' => 'Ada'],
+            ['id' => 2, 'name' => 'Bob'],
+            ['id' => 3, 'name' => 'Cara'],
+        ]);
+        $orders = [
+            ['userId' => 1, 'total' => 10],
+            ['userId' => 1, 'total' => 20],
+            ['userId' => 3, 'total' => 30],
+        ];
+
+        $result = $users->join(
+            $orders,
+            static fn (array $user): int => $user['id'],
+            static fn (array $order): int => $order['userId'],
+            static fn (array $user, array $order): array => [
+                'name' => $user['name'],
+                'total' => $order['total'],
+            ],
+        )->toArray();
+
+        self::assertSame([
+            ['name' => 'Ada', 'total' => 10],
+            ['name' => 'Ada', 'total' => 20],
+            ['name' => 'Cara', 'total' => 30],
+        ], $result);
     }
 
     public function testQueryableCanContinueAsEnumerableWithCallbacks(): void

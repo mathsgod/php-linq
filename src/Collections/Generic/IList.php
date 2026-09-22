@@ -20,6 +20,14 @@ interface IList extends ICollection, ArrayAccess
 
     public function removeAt(int $index): void;
 
+    public function removeRange(int $index, int $count): void;
+
+    /** @param iterable<T> $items */
+    public function insertRange(int $index, iterable $items): void;
+
+    /** @return GenericList<T> */
+    public function getRange(int $index, int $count): GenericList;
+
     /** @param T $item */
     public function indexOf(mixed $item): int;
 }

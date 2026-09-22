@@ -50,6 +50,34 @@ final class GenericCollectionsTest extends TestCase
         self::assertCount(0, $list);
     }
 
+    public function testGenericListRangeOperations(): void
+    {
+        $list = new GenericList([1, 2, 5]);
+        $list->insertRange(2, [3, 4]);
+
+        self::assertSame([1, 2, 3, 4, 5], $list->toArray());
+        self::assertSame([2, 3, 4], $list->getRange(1, 3)->toArray());
+
+        $list->removeRange(1, 3);
+        self::assertSame([1, 5], $list->toArray());
+    }
+
+    public function testGenericListCanInsertItself(): void
+    {
+        $list = new GenericList([1, 2]);
+        $list->insertRange(1, $list);
+
+        self::assertSame([1, 1, 2, 2], $list->toArray());
+    }
+
+    public function testGenericListRejectsInvalidRange(): void
+    {
+        $list = new GenericList([1, 2]);
+
+        $this->expectException(OutOfRangeException::class);
+        $list->getRange(1, 2);
+    }
+
     public function testStackUsesLastInFirstOutOrder(): void
     {
         /** @var Stack<int> $stack */

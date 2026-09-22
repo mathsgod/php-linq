@@ -6,6 +6,7 @@ namespace PhpLinq;
 
 use Countable;
 use IteratorAggregate;
+use PhpLinq\Collections\Generic\EqualityComparer;
 use Traversable;
 
 /** @template T @extends IteratorAggregate<int, T> */
@@ -94,6 +95,49 @@ interface IEnumerable extends IteratorAggregate, Countable
 
     /** @param (callable(T): int|float)|null $selector */
     public function average(?callable $selector = null): int|float;
+
+    /** @param (callable(T): mixed)|null $selector */
+    public function min(?callable $selector = null, ?callable $comparer = null): mixed;
+
+    /** @param (callable(T): mixed)|null $selector */
+    public function max(?callable $selector = null, ?callable $comparer = null): mixed;
+
+    /** @param callable(T): mixed $keySelector @return T */
+    public function minBy(callable $keySelector, ?callable $comparer = null): mixed;
+
+    /** @param callable(T): mixed $keySelector @return T */
+    public function maxBy(callable $keySelector, ?callable $comparer = null): mixed;
+
+    /** @param iterable<T> $second @return IEnumerable<T> */
+    public function except(iterable $second, ?EqualityComparer $comparer = null): IEnumerable;
+
+    /** @param iterable<T> $second @return IEnumerable<T> */
+    public function intersect(iterable $second, ?EqualityComparer $comparer = null): IEnumerable;
+
+    /** @param iterable<T> $second @return IEnumerable<T> */
+    public function union(iterable $second, ?EqualityComparer $comparer = null): IEnumerable;
+
+    /** @return IEnumerable<T> */
+    public function shuffle(): IEnumerable;
+
+    /**
+     * @template TInner
+     * @template TKey
+     * @template TResult
+     * @param iterable<TInner> $inner
+     * @param callable(T): TKey $outerKeySelector
+     * @param callable(TInner): TKey $innerKeySelector
+     * @param callable(T, TInner): TResult $resultSelector
+     * @param EqualityComparer<TKey>|null $comparer
+     * @return IEnumerable<TResult>
+     */
+    public function join(
+        iterable $inner,
+        callable $outerKeySelector,
+        callable $innerKeySelector,
+        callable $resultSelector,
+        ?EqualityComparer $comparer = null,
+    ): IEnumerable;
 
     /** @param callable(mixed, T): mixed $accumulator */
     public function aggregate(callable $accumulator, mixed $seed = null): mixed;
