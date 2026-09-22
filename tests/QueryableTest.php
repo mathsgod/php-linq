@@ -72,4 +72,36 @@ final class QueryableTest extends TestCase
                 ->toArray(),
         );
     }
+
+    public function testSelectMultipleFields(): void
+    {
+        self::assertSame(
+            [
+                ['id' => 1, 'name' => 'Ada'],
+                ['id' => 2, 'name' => 'Bob'],
+            ],
+            $this->users
+                ->select(Expr::fields('id', 'name'))
+                ->take(2)
+                ->toArray(),
+        );
+    }
+
+    public function testProjectionSupportsAliasesAndExpressions(): void
+    {
+        self::assertSame(
+            [
+                ['userId' => 1, 'displayName' => 'Ada', 'adult' => true],
+                ['userId' => 2, 'displayName' => 'Bob', 'adult' => true],
+            ],
+            $this->users
+                ->select(Expr::projection([
+                    'userId' => Expr::field('id'),
+                    'displayName' => 'name',
+                    'adult' => Expr::gte(Expr::field('age'), 18),
+                ]))
+                ->take(2)
+                ->toArray(),
+        );
+    }
 }

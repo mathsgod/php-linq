@@ -8,6 +8,7 @@ use PhpLinq\Expression\BinaryExpression;
 use PhpLinq\Expression\ConstantExpression;
 use PhpLinq\Expression\FieldExpression;
 use PhpLinq\Expression\LogicalExpression;
+use PhpLinq\Expression\ProjectionExpression;
 use PhpLinq\Expression\ValueExpression;
 
 final class Expr
@@ -60,6 +61,38 @@ final class Expr
     public static function either(ValueExpression $left, ValueExpression $right): LogicalExpression
     {
         return new LogicalExpression($left, 'or', $right);
+    }
+
+    public static function fields(string ...$paths): ProjectionExpression
+    {
+        if ($paths === []) {
+            throw new \InvalidArgumentException('At least one field is required.');
+        }
+
+        $members = [];
+        foreach ($paths as $path) {
+            $segments = explode('.', $path);
+            $alias = end($segments);
+            if (array_key_exists($alias, $members)) {
+                throw new \InvalidArgumentException("Duplicate projection alias: {$alias}");
+            }
+            $members[$alias] = self::field($path);
+        }
+        return new ProjectionExpression($members);
+    }
+
+    /**
+     * @param non-empty-array<string, ValueExpression|string> $members
+     */
+    public static function projection(array $members): ProjectionExpression
+    {
+        $expressions = [];
+        foreach ($members as $alias => $expression) {
+            $expressions[$alias] = is_string($expression)
+                ? self::field($expression)
+                : $expression;
+        }
+        return new ProjectionExpression($expressions);
     }
 
     private static function compare(ValueExpression $left, string $operator, mixed $right): BinaryExpression

@@ -142,6 +142,56 @@ final class SqlQueryCompilerTest extends TestCase
         );
     }
 
+    /** @return iterable<string, array{SqlDialect, string}> */
+    public static function projectionDialects(): iterable
+    {
+        yield 'MySQL' => [
+            new MySqlDialect(),
+            'SELECT `id` AS `id`, `name` AS `name` FROM `users`',
+        ];
+        yield 'SQL Server' => [
+            new SqlServerDialect(),
+            'SELECT [id] AS [id], [name] AS [name] FROM [users]',
+        ];
+        yield 'PostgreSQL' => [
+            new PostgreSqlDialect(),
+            'SELECT "id" AS "id", "name" AS "name" FROM "users"',
+        ];
+        yield 'SQLite' => [
+            new SqliteDialect(),
+            'SELECT "id" AS "id", "name" AS "name" FROM "users"',
+        ];
+    }
+
+    #[DataProvider('projectionDialects')]
+    public function testCompilesMultiFieldProjection(SqlDialect $dialect, string $expected): void
+    {
+        $query = $this->query()->select(Expr::fields('id', 'name'));
+
+        $compiled = (new SqlQueryCompiler($dialect))->compile($query->expression());
+
+        self::assertSame($expected, $compiled->sql);
+        self::assertSame([], $compiled->parameters);
+        self::assertSame('rows', $compiled->resultMode);
+    }
+
+    public function testCompilesAliasedProjectionWithParameterizedExpression(): void
+    {
+        $query = $this->query()->select(Expr::projection([
+            'userId' => Expr::field('id'),
+            'isAdult' => Expr::gte(Expr::field('age'), 18),
+        ]));
+
+        $compiled = (new SqlQueryCompiler(new MySqlDialect()))->compile($query->expression());
+
+        self::assertSame(
+            'SELECT `id` AS `userId`, (`age` >= :p0) AS `isAdult` FROM `users`',
+            $compiled->sql,
+        );
+        self::assertSame(['p0' => 18], $compiled->parameters);
+        self::assertSame('rows', $compiled->resultMode);
+    }
+
     private function query(): Queryable
     {
         return Queryable::from(new InMemoryQueryProvider(['users' => []]), 'users');

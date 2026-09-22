@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace PhpLinq\Sql;
 
 use PhpLinq\Expression\Expression;
-use PhpLinq\Expression\FieldExpression;
 use PhpLinq\Expression\MethodCallExpression;
 use PhpLinq\Expression\SourceExpression;
 
@@ -35,7 +34,7 @@ final readonly class SqlQueryCompiler
 
             match ($operation->method) {
                 'where' => $plan->predicates[] = $operation->arguments['predicate'],
-                'select' => $plan->selection = $this->field($operation->arguments['selector']),
+                'select' => $plan->selection = $operation->arguments['selector'],
                 'orderBy' => $plan->orderings[] = [
                     'expression' => $operation->arguments['keySelector'],
                     'descending' => $operation->arguments['descending'],
@@ -49,13 +48,5 @@ final readonly class SqlQueryCompiler
         }
 
         return $this->dialect->compile($plan);
-    }
-
-    private function field(mixed $expression): FieldExpression
-    {
-        if (!$expression instanceof FieldExpression) {
-            throw new \LogicException('SQL select currently supports field expressions only.');
-        }
-        return $expression;
     }
 }

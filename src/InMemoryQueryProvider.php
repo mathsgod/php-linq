@@ -10,6 +10,7 @@ use PhpLinq\Expression\Expression;
 use PhpLinq\Expression\FieldExpression;
 use PhpLinq\Expression\LogicalExpression;
 use PhpLinq\Expression\MethodCallExpression;
+use PhpLinq\Expression\ProjectionExpression;
 use PhpLinq\Expression\SourceExpression;
 use PhpLinq\Expression\ValueExpression;
 
@@ -126,8 +127,19 @@ final class InMemoryQueryProvider implements QueryProvider
             $expression instanceof FieldExpression => $this->readField($row, $expression->path),
             $expression instanceof BinaryExpression => $this->evaluateBinary($expression, $row),
             $expression instanceof LogicalExpression => $this->evaluateLogical($expression, $row),
+            $expression instanceof ProjectionExpression => $this->evaluateProjection($expression, $row),
             default => throw new \LogicException('Unsupported value expression: '.$expression::class),
         };
+    }
+
+    /** @return array<string, mixed> */
+    private function evaluateProjection(ProjectionExpression $expression, mixed $row): array
+    {
+        $result = [];
+        foreach ($expression->members as $alias => $member) {
+            $result[$alias] = $this->evaluate($member, $row);
+        }
+        return $result;
     }
 
     private function evaluateBinary(BinaryExpression $expression, mixed $row): bool

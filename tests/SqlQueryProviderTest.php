@@ -51,4 +51,19 @@ final class SqlQueryProviderTest extends TestCase
             Expr::eq(Expr::field('id'), 3),
         ));
     }
+
+    public function testExecutesMultiFieldProjection(): void
+    {
+        self::assertSame(
+            [
+                ['id' => 1, 'name' => 'Ada'],
+                ['id' => 2, 'name' => 'Bob'],
+            ],
+            $this->users
+                ->orderBy(Expr::field('id'))
+                ->select(Expr::fields('id', 'name'))
+                ->take(2)
+                ->toArray(),
+        );
+    }
 }

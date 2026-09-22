@@ -8,6 +8,7 @@ use PhpLinq\Expression\BinaryExpression;
 use PhpLinq\Expression\ConstantExpression;
 use PhpLinq\Expression\FieldExpression;
 use PhpLinq\Expression\LogicalExpression;
+use PhpLinq\Expression\ProjectionExpression;
 use PhpLinq\Expression\ValueExpression;
 
 abstract class AbstractSqlDialect implements SqlDialect
@@ -25,8 +26,8 @@ abstract class AbstractSqlDialect implements SqlDialect
         $resultMode = match ($terminal) {
             'count' => 'count',
             'any' => 'any',
-            'first' => $query->selection === null ? 'first-row' : 'first-scalar',
-            default => $query->selection === null ? 'rows' : 'scalar-list',
+            'first' => $query->selection instanceof FieldExpression ? 'first-scalar' : 'first-row',
+            default => $query->selection instanceof FieldExpression ? 'scalar-list' : 'rows',
         };
 
         if ($terminal === 'first') {
@@ -73,9 +74,7 @@ abstract class AbstractSqlDialect implements SqlDialect
     private function compileSequence(QueryPlan $query): string
     {
         $pagination = $this->pagination($query->limit, $query->offset, $query->orderings !== []);
-        $selection = $query->selection === null
-            ? '*'
-            : $this->quoteIdentifier($query->selection->path).' AS '.$this->quoteIdentifier('__linq_value');
+        $selection = $this->selection($query->selection);
 
         $sql = 'SELECT '.$pagination['prefix'].$selection
             .' FROM '.$this->quoteIdentifier($query->table);
@@ -96,6 +95,25 @@ abstract class AbstractSqlDialect implements SqlDialect
         }
 
         return $sql.$pagination['suffix'];
+    }
+
+    private function selection(?ValueExpression $selection): string
+    {
+        if ($selection === null) {
+            return '*';
+        }
+        if ($selection instanceof FieldExpression) {
+            return $this->quoteIdentifier($selection->path)
+                .' AS '.$this->quoteIdentifier('__linq_value');
+        }
+        if ($selection instanceof ProjectionExpression) {
+            $members = [];
+            foreach ($selection->members as $alias => $expression) {
+                $members[] = $this->value($expression).' AS '.$this->quoteIdentifier($alias);
+            }
+            return implode(', ', $members);
+        }
+        throw new \LogicException('Unsupported SQL selection expression: '.$selection::class);
     }
 
     private function value(ValueExpression $expression): string
@@ -119,6 +137,9 @@ abstract class AbstractSqlDialect implements SqlDialect
                 .$expression->operator.' '.$this->value($expression->right).')',
             $expression instanceof LogicalExpression => '('.$this->value($expression->left).' '
                 .strtoupper($expression->operator).' '.$this->value($expression->right).')',
+            $expression instanceof ProjectionExpression => throw new \LogicException(
+                'Nested projection expressions are not supported.',
+            ),
             default => throw new \LogicException('Unsupported SQL value expression: '.$expression::class),
         };
     }

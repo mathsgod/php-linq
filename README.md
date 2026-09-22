@@ -92,6 +92,23 @@ $names = Queryable::from($provider, 'users')
     ->toArray();
 ```
 
+Select multiple fields with a projection. `fields()` keeps the field names,
+while `projection()` allows aliases and computed expressions:
+
+```php
+$summaries = $users->select(Expr::fields('id', 'name'))->toArray();
+
+$summaries = $users->select(Expr::projection([
+    'userId' => Expr::field('id'),
+    'displayName' => Expr::field('name'),
+    'isAdult' => Expr::gte(Expr::field('age'), 18),
+]))->toArray();
+```
+
+`select(Expr::field('name'))` returns a scalar sequence. `fields()` and
+`projection()` always return associative rows keyed by their aliases, even when
+they contain only one member.
+
 The expression tree is provider-independent. `InMemoryQueryProvider` executes
 it against arrays or other iterables; a future SQL provider can translate the
 same nodes into parameterized SQL.
