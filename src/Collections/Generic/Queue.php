@@ -4,13 +4,11 @@ declare(strict_types=1);
 
 namespace PhpLinq\Collections\Generic;
 
-use Countable;
-use IteratorAggregate;
 use Traversable;
 use UnderflowException;
 
-/** @template T @implements IteratorAggregate<int, T> */
-final class Queue implements Countable, IteratorAggregate
+/** @template T @implements IReadOnlyCollection<T> */
+final class Queue implements IReadOnlyCollection
 {
     /** @var array<int, T> */
     private array $items = [];

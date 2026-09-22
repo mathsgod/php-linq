@@ -4,9 +4,6 @@ declare(strict_types=1);
 
 namespace PhpLinq\Collections\Generic;
 
-use ArrayAccess;
-use Countable;
-use IteratorAggregate;
 use OutOfRangeException;
 use Traversable;
 
@@ -15,10 +12,9 @@ use Traversable;
  * PHP reserves the name "list", so the PHP class is named GenericList.
  *
  * @template T
- * @implements ArrayAccess<int, T>
- * @implements IteratorAggregate<int, T>
+ * @implements IList<T>
  */
-final class GenericList implements ArrayAccess, Countable, IteratorAggregate
+final class GenericList implements IList
 {
     /** @var list<T> */
     private array $items;
@@ -74,6 +70,11 @@ final class GenericList implements ArrayAccess, Countable, IteratorAggregate
         }
         $this->items = [];
         ++$this->version;
+    }
+
+    public function isEmpty(): bool
+    {
+        return $this->items === [];
     }
 
     /** @return T */

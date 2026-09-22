@@ -55,6 +55,24 @@ PHP reserves the keyword `list`, so the .NET `List<T>` equivalent is named
 `GenericList<T>`. All three collections implement `IteratorAggregate` and can
 be passed directly to `Enumerable::from()`.
 
+The generic collection contracts are organised as follows:
+
+```text
+IReadOnlyCollection<T>
+├── ICollection<T>
+│   ├── IList<T> → GenericList<T>
+│   └── ISet<T>  → HashSet<T>
+├── Stack<T>
+└── Queue<T>
+
+IReadOnlyCollection<KeyValuePair<TKey, TValue>>
+└── IDictionary<TKey, TValue> → Dictionary<TKey, TValue>
+```
+
+`HashSet<T>` supports custom `EqualityComparer<T>` implementations and mutable
+set operations including union, intersection, difference, symmetric
+difference, subset/superset checks, overlap checks, and set equality.
+
 ```php
 use PhpLinq\Expr;
 use PhpLinq\InMemoryQueryProvider;

@@ -19,6 +19,7 @@ final class DefaultEqualityComparer implements EqualityComparer
     public function hash(mixed $value): string
     {
         return match (true) {
+            $value === null => 'null',
             is_object($value) => 'object:'.spl_object_id($value),
             is_resource($value) => 'resource:'.get_resource_id($value),
             is_float($value) && is_nan($value) => 'float:nan',
@@ -27,7 +28,7 @@ final class DefaultEqualityComparer implements EqualityComparer
             is_string($value) => 'string:'.$value,
             is_bool($value) => 'bool:'.($value ? '1' : '0'),
             is_array($value) => 'array:'.hash('xxh128', serialize($value)),
-            default => throw new \InvalidArgumentException('Dictionary keys cannot be null.'),
+            default => throw new \InvalidArgumentException('Unsupported value type.'),
         };
     }
 }

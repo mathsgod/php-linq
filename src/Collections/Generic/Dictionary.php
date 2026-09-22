@@ -5,8 +5,6 @@ declare(strict_types=1);
 namespace PhpLinq\Collections\Generic;
 
 use ArrayAccess;
-use Countable;
-use IteratorAggregate;
 use Traversable;
 
 /**
@@ -18,9 +16,9 @@ use Traversable;
  * @template TKey
  * @template TValue
  * @implements ArrayAccess<TKey, TValue>
- * @implements IteratorAggregate<int, KeyValuePair<TKey, TValue>>
+ * @implements IDictionary<TKey, TValue>
  */
-final class Dictionary implements ArrayAccess, Countable, IteratorAggregate
+final class Dictionary implements ArrayAccess, IDictionary
 {
     /** @var array<string, list<KeyValuePair<TKey, TValue>>> */
     private array $buckets = [];
@@ -89,6 +87,11 @@ final class Dictionary implements ArrayAccess, Countable, IteratorAggregate
         return $this->buckets[$hash][$index]->value;
     }
 
+    public function getOrDefault(mixed $key, mixed $default): mixed
+    {
+        return $this->tryGetValue($key, $value) ? $value : $default;
+    }
+
     /** @param TKey $key */
     public function containsKey(mixed $key): bool
     {
@@ -153,6 +156,11 @@ final class Dictionary implements ArrayAccess, Countable, IteratorAggregate
         ++$this->version;
     }
 
+    public function isEmpty(): bool
+    {
+        return $this->size === 0;
+    }
+
     /** @return list<TKey> */
     public function keys(): array
     {
@@ -163,6 +171,12 @@ final class Dictionary implements ArrayAccess, Countable, IteratorAggregate
     public function values(): array
     {
         return array_map(static fn (KeyValuePair $pair): mixed => $pair->value, $this->pairs());
+    }
+
+    /** @return list<KeyValuePair<TKey, TValue>> */
+    public function toArray(): array
+    {
+        return $this->pairs();
     }
 
     public function count(): int
