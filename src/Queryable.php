@@ -81,6 +81,11 @@ final readonly class Queryable implements IQueryable
         return $this->queryProvider->execute($query->terminal('first'));
     }
 
+    public function asEnumerable(): IEnumerable
+    {
+        return Enumerable::from($this);
+    }
+
     public function toArray(): array
     {
         return iterator_to_array($this->getIterator(), false);

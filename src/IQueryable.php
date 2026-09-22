@@ -34,6 +34,9 @@ interface IQueryable extends IteratorAggregate
 
     public function first(?ValueExpression $predicate = null): mixed;
 
+    /** @return IEnumerable<T> */
+    public function asEnumerable(): IEnumerable;
+
     /** @return list<T> */
     public function toArray(): array;
 

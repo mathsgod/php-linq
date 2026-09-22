@@ -1,0 +1,106 @@
+<?php
+
+declare(strict_types=1);
+
+namespace PhpLinq;
+
+use Countable;
+use IteratorAggregate;
+use Traversable;
+
+/** @template T @extends IteratorAggregate<int, T> */
+interface IEnumerable extends IteratorAggregate, Countable
+{
+    /** @template TResult @param callable(T): TResult $selector @return IEnumerable<TResult> */
+    public function select(callable $selector): IEnumerable;
+
+    /** @param callable(T): bool $predicate @return IEnumerable<T> */
+    public function where(callable $predicate): IEnumerable;
+
+    /** @template TResult @param callable(T): iterable<TResult> $selector @return IEnumerable<TResult> */
+    public function selectMany(callable $selector): IEnumerable;
+
+    /** @param callable(T): mixed $keySelector @return IOrderedEnumerable<T> */
+    public function orderBy(callable $keySelector): IOrderedEnumerable;
+
+    /** @param callable(T): mixed $keySelector @return IOrderedEnumerable<T> */
+    public function orderByDescending(callable $keySelector): IOrderedEnumerable;
+
+    /** @return IEnumerable<T> */
+    public function skip(int $count): IEnumerable;
+
+    /** @return IEnumerable<T> */
+    public function take(int $count): IEnumerable;
+
+    /** @param callable(T): bool $predicate @return IEnumerable<T> */
+    public function skipWhile(callable $predicate): IEnumerable;
+
+    /** @param callable(T): bool $predicate @return IEnumerable<T> */
+    public function takeWhile(callable $predicate): IEnumerable;
+
+    /** @return IEnumerable<T> */
+    public function takeLast(int $count): IEnumerable;
+
+    /** @param (callable(T): mixed)|null $keySelector @return IEnumerable<T> */
+    public function distinct(?callable $keySelector = null): IEnumerable;
+
+    /** @param T $value @return IEnumerable<T> */
+    public function append(mixed $value): IEnumerable;
+
+    /** @param T $value @return IEnumerable<T> */
+    public function prepend(mixed $value): IEnumerable;
+
+    /** @param iterable<T> $other @return IEnumerable<T> */
+    public function concat(iterable $other): IEnumerable;
+
+    /** @return IEnumerable<T> */
+    public function reverse(): IEnumerable;
+
+    /** @return IEnumerable<list<T>> */
+    public function chunk(int $size): IEnumerable;
+
+    /** @param callable(T): bool|null $predicate */
+    public function count(?callable $predicate = null): int;
+
+    /** @param callable(T): bool|null $predicate */
+    public function any(?callable $predicate = null): bool;
+
+    /** @param callable(T): bool $predicate */
+    public function all(callable $predicate): bool;
+
+    /** @param T $value */
+    public function contains(mixed $value): bool;
+
+    /** @param callable(T): bool|null $predicate @return T */
+    public function first(?callable $predicate = null): mixed;
+
+    /** @param callable(T): bool|null $predicate @return T|null */
+    public function firstOrDefault(?callable $predicate = null, mixed $default = null): mixed;
+
+    /** @param callable(T): bool|null $predicate @return T */
+    public function last(?callable $predicate = null): mixed;
+
+    /** @param callable(T): bool|null $predicate @return T|null */
+    public function lastOrDefault(?callable $predicate = null, mixed $default = null): mixed;
+
+    /** @param callable(T): bool|null $predicate @return T */
+    public function single(?callable $predicate = null): mixed;
+
+    /** @param callable(T): bool|null $predicate @return T|null */
+    public function singleOrDefault(?callable $predicate = null, mixed $default = null): mixed;
+
+    /** @param (callable(T): int|float)|null $selector */
+    public function sum(?callable $selector = null): int|float;
+
+    /** @param (callable(T): int|float)|null $selector */
+    public function average(?callable $selector = null): int|float;
+
+    /** @param callable(mixed, T): mixed $accumulator */
+    public function aggregate(callable $accumulator, mixed $seed = null): mixed;
+
+    /** @return list<T> */
+    public function toArray(): array;
+
+    /** @return Traversable<int, T> */
+    public function getIterator(): Traversable;
+}
