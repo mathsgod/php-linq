@@ -1,0 +1,79 @@
+# php-linq
+
+An experimental LINQ-style query library for PHP 8.2+. Unlike callback-only
+collection wrappers, a query is represented by an expression tree and executed
+by a query provider.
+
+```php
+use PhpLinq\Expr;
+use PhpLinq\InMemoryQueryProvider;
+use PhpLinq\Queryable;
+
+$provider = new InMemoryQueryProvider([
+    'users' => [
+        ['name' => 'Ada', 'active' => true, 'age' => 36],
+        ['name' => 'Bob', 'active' => false, 'age' => 22],
+    ],
+]);
+
+$names = Queryable::from($provider, 'users')
+    ->where(Expr::eq(Expr::field('active'), true))
+    ->orderBy(Expr::field('name'))
+    ->select(Expr::field('name'))
+    ->toArray();
+```
+
+The expression tree is provider-independent. `InMemoryQueryProvider` executes
+it against arrays or other iterables; a future SQL provider can translate the
+same nodes into parameterized SQL.
+
+Supported query operators: `where`, `select`, `orderBy`, `orderByDescending`,
+`skip`, `take`, `count`, `any`, and `first`.
+
+## Generic dictionary
+
+`Collections\\Generic\\Dictionary<TKey, TValue>` is a hash-table collection
+with object-key support and pluggable equality semantics:
+
+```php
+use PhpLinq\Collections\Generic\Dictionary;
+
+/** @var Dictionary<string, int> $scores */
+$scores = new Dictionary();
+$scores->add('Ada', 10);       // throws when the key already exists
+$scores['Ada'] = 15;           // indexer-style insert or replace
+$scores->tryGetValue('Ada', $score);
+```
+
+It provides `add`, `set`, `get`, `tryAdd`, `tryGetValue`, `containsKey`,
+`containsValue`, `remove`, `clear`, `keys`, and `values`. Iteration returns
+`KeyValuePair<TKey, TValue>` objects so keys are not restricted to PHP's
+integer and string iterator-key types.
+
+## SQL providers
+
+The same expression tree can be compiled and executed through PDO:
+
+```php
+use PhpLinq\Queryable;
+use PhpLinq\Sql\MySqlDialect;
+use PhpLinq\SqlQueryProvider;
+
+$users = Queryable::from(
+    new SqlQueryProvider($pdo, new MySqlDialect()),
+    'users',
+);
+```
+
+The included dialects are `MySqlDialect`, `SqlServerDialect`,
+`PostgreSqlDialect`, and `SqliteDialect`. They generate their native identifier
+quoting and pagination syntax, including SQL Server `TOP` / `OFFSET ... FETCH`
+and MySQL, PostgreSQL, and SQLite `LIMIT` variants. Query values are always
+emitted as bound parameters.
+
+Install the development dependencies and run the PHPUnit test suite with:
+
+```sh
+composer install
+composer test
+```
