@@ -92,6 +92,33 @@ IReadOnlyCollection<KeyValuePair<TKey, TValue>>
 set operations including union, intersection, difference, symmetric
 difference, subset/superset checks, overlap checks, and set equality.
 
+## LINQ to XML
+
+The `PhpLinq\\Xml` namespace provides a DOMDocument-backed XML object model:
+
+```php
+use PhpLinq\Xml\XDocument;
+use PhpLinq\Xml\XElement;
+
+$document = XDocument::load('users.xml');
+
+$names = $document
+    ->descendants('user')
+    ->where(fn (XElement $user): bool =>
+        $user->attribute('active')?->value() === 'true'
+    )
+    ->select(fn (XElement $user): ?string =>
+        $user->element('name')?->value()
+    )
+    ->toArray();
+```
+
+`XDocument` supports parsing, file loading, root access, descendant queries,
+and XML serialization. `XElement` provides direct-child and descendant element
+queries plus attribute access. Expanded names such as `{urn:people}user` are
+supported through `XName`. All XML sequence methods return lazy `IEnumerable`
+instances.
+
 ```php
 use PhpLinq\Expr;
 use PhpLinq\InMemoryQueryProvider;
