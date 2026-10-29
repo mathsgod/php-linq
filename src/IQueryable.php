@@ -14,7 +14,7 @@ interface IQueryable extends IteratorAggregate
 {
     public function expression(): Expression;
 
-    public function provider(): QueryProvider;
+    public function provider(): IQueryProvider;
 
     public function where(ValueExpression $predicate): self;
 

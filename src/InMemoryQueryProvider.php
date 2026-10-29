@@ -14,7 +14,7 @@ use PhpLinq\Expression\ProjectionExpression;
 use PhpLinq\Expression\SourceExpression;
 use PhpLinq\Expression\ValueExpression;
 
-final class InMemoryQueryProvider implements QueryProvider
+final class InMemoryQueryProvider implements IQueryProvider
 {
     /** @param array<string, iterable<mixed>> $sources */
     public function __construct(private readonly array $sources)

@@ -14,12 +14,12 @@ use Traversable;
 final readonly class Queryable implements IQueryable
 {
     public function __construct(
-        private QueryProvider $queryProvider,
+        private IQueryProvider $queryProvider,
         private Expression $queryExpression,
     ) {
     }
 
-    public static function from(QueryProvider $provider, string $source): self
+    public static function from(IQueryProvider $provider, string $source): self
     {
         return new self($provider, new SourceExpression($source));
     }
@@ -29,7 +29,7 @@ final readonly class Queryable implements IQueryable
         return $this->queryExpression;
     }
 
-    public function provider(): QueryProvider
+    public function provider(): IQueryProvider
     {
         return $this->queryProvider;
     }

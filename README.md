@@ -156,8 +156,8 @@ $summaries = $users->select(Expr::projection([
 they contain only one member.
 
 The expression tree is provider-independent. `InMemoryQueryProvider` executes
-it against arrays or other iterables; a future SQL provider can translate the
-same nodes into parameterized SQL.
+it against arrays or other iterables; the SQL provider in `mathsgod/php-entity`
+translates the same nodes into parameterized SQL.
 
 Supported query operators: `where`, `select`, `orderBy`, `orderByDescending`,
 `skip`, `take`, `count`, `any`, and `first`.
@@ -182,20 +182,11 @@ It provides `add`, `set`, `get`, `tryAdd`, `tryGetValue`, `containsKey`,
 `KeyValuePair<TKey, TValue>` objects so keys are not restricted to PHP's
 integer and string iterator-key types.
 
-## SQL providers
+## SQL compilation
 
-The same expression tree can be compiled and executed through PDO:
-
-```php
-use PhpLinq\Queryable;
-use PhpLinq\Sql\MySqlDialect;
-use PhpLinq\SqlQueryProvider;
-
-$users = Queryable::from(
-    new SqlQueryProvider($pdo, new MySqlDialect()),
-    'users',
-);
-```
+SQL compilation and dialects remain in this package. PDO execution is provided
+by `PhpEntity\SqlQueryProvider` in the separate `mathsgod/php-entity` package;
+php-linq does not depend on php-entity. See that package for execution examples.
 
 The included dialects are `MySqlDialect`, `SqlServerDialect`,
 `PostgreSqlDialect`, and `SqliteDialect`. They generate their native identifier
@@ -209,3 +200,11 @@ Install the development dependencies and run the PHPUnit test suite with:
 composer install
 composer test
 ```
+
+## Query provider contract
+
+`PhpLinq\IQueryProvider` is the provider interface owned by php-linq.
+`Queryable` depends on this interface; `InMemoryQueryProvider` implements it
+for iterable sources, and `PhpEntity\SqlQueryProvider` implements it for PDO
+execution in php-entity. The former interface name `PhpLinq\QueryProvider`
+has been renamed to `PhpLinq\IQueryProvider`; update custom providers and imports.

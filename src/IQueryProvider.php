@@ -6,7 +6,7 @@ namespace PhpLinq;
 
 use PhpLinq\Expression\Expression;
 
-interface QueryProvider
+interface IQueryProvider
 {
     public function execute(Expression $expression): mixed;
 }
