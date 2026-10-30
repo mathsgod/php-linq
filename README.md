@@ -184,17 +184,15 @@ integer and string iterator-key types.
 
 ## SQL compilation
 
-SQL compilation and dialects remain in this package. PDO execution is provided
-by `PhpEntity\SqlQueryProvider` in the separate `mathsgod/php-entity` package;
-php-linq does not depend on php-entity. See that package for execution examples.
+SQL compilation, query plans and database dialects live in the separate
+`mathsgod/php-entity` package under `PhpEntity\Sql`. PDO execution is provided
+by `PhpEntity\SqlQueryProvider`. This package supplies database-independent
+LINQ operators, expression trees and the `IQueryProvider` contract.
 
-The included dialects are `MySqlDialect`, `SqlServerDialect`,
-`PostgreSqlDialect`, and `SqliteDialect`. They generate their native identifier
-quoting and pagination syntax, including SQL Server `TOP` / `OFFSET ... FETCH`
-and MySQL, PostgreSQL, and SQLite `LIMIT` variants. Query values are always
-emitted as bound parameters.
+When upgrading, replace `PhpLinq\Sql` imports with `PhpEntity\Sql` and add a
+`mathsgod/php-entity` dependency if you use SQL compilation or dialects.
 
-Install the development dependencies and run the PHPUnit test suite with:
+Install development dependencies and run the PHPUnit test suite with:
 
 ```sh
 composer install
@@ -208,3 +206,28 @@ composer test
 for iterable sources, and `PhpEntity\SqlQueryProvider` implements it for PDO
 execution in php-entity. The former interface name `PhpLinq\QueryProvider`
 has been renamed to `PhpLinq\IQueryProvider`; update custom providers and imports.
+
+## Joining query sources
+
+`Queryable::join($inner, $outerKey, $innerKey, $resultSelector)` and
+`leftJoin(...)` compose two queries from the same provider instance. Keys are
+relative to their respective source; the result selector sees `outer` and
+`inner`. Both operators execute in `InMemoryQueryProvider`; SQL translation
+belongs to `mathsgod/php-entity`.
+
+```php
+$query = $orders->leftJoin(
+    $customers,
+    Expr::field('customer_id'),
+    Expr::field('id'),
+    Expr::projection(['id' => 'outer.id', 'customer' => 'inner.name']),
+);
+$rows = $query->where(Expr::eq(Expr::field('customer'), null))->toArray();
+```
+
+INNER JOIN emits each matching pair; LEFT JOIN also emits unmatched outer rows
+with null inner fields. Null keys never match. In-memory key matching uses
+strict PHP equality; database comparisons follow the database's types and
+collation. Composite keys use named `Expr::projection()` members. SQL queries
+require named row projections as join sources; use named projections rather
+than scalar selections when composing subsequent joins.

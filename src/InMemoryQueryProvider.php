@@ -37,6 +37,7 @@ final class InMemoryQueryProvider implements IQueryProvider
         $source = $this->execute($expression->source);
 
         return match ($expression->method) {
+            'join', 'leftJoin' => $this->joinRows($source, $expression),
             'where' => $this->where($source, $expression->arguments['predicate']),
             'select' => $this->select($source, $expression->arguments['selector']),
             'skip' => $this->skip($source, $expression->arguments['count']),
@@ -51,6 +52,46 @@ final class InMemoryQueryProvider implements IQueryProvider
             'first' => $this->first($source),
             default => throw new \LogicException("Unsupported query method: {$expression->method}"),
         };
+    }
+
+    private function joinRows(iterable $source, MethodCallExpression $expression): \Generator
+    {
+        $arguments = $expression->arguments;
+        $inner = iterator_to_array($this->iterator($this->execute($arguments['inner'])), false);
+        foreach ($source as $outer) {
+            $key = $this->evaluate($arguments['outerKey'], $outer);
+            $matched = false;
+            foreach ($inner as $item) {
+                $innerKey = $this->evaluate($arguments['innerKey'], $item);
+                // Relational equality does not match null join keys.
+                if ($this->joinKeysEqual($key, $innerKey)) {
+                    $matched = true;
+                    yield $this->evaluate($arguments['resultSelector'], ['outer' => $outer, 'inner' => $item]);
+                }
+            }
+            if (!$matched && $expression->method === 'leftJoin') {
+                yield $this->evaluate($arguments['resultSelector'], ['outer' => $outer, 'inner' => null]);
+            }
+        }
+    }
+
+    private function joinKeysEqual(mixed $left, mixed $right): bool
+    {
+        if ($left === null || $right === null) {
+            return false;
+        }
+        if (is_array($left) && is_array($right)) {
+            if (array_keys($left) !== array_keys($right)) {
+                return false;
+            }
+            foreach ($left as $name => $value) {
+                if (!$this->joinKeysEqual($value, $right[$name])) {
+                    return false;
+                }
+            }
+            return true;
+        }
+        return $left === $right;
     }
 
     private function where(iterable $source, ValueExpression $predicate): \Generator
@@ -169,11 +210,14 @@ final class InMemoryQueryProvider implements IQueryProvider
     {
         $value = $row;
         foreach (explode('.', $path) as $segment) {
+            if ($value === null) {
+                return null;
+            }
             if (is_array($value) && array_key_exists($segment, $value)) {
                 $value = $value[$segment];
                 continue;
             }
-            if (is_object($value) && isset($value->{$segment})) {
+            if (is_object($value) && (isset($value->{$segment}) || array_key_exists($segment, get_object_vars($value)))) {
                 $value = $value->{$segment};
                 continue;
             }

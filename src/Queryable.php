@@ -44,6 +44,27 @@ final readonly class Queryable implements IQueryable
         return $this->call('select', ['selector' => $selector]);
     }
 
+    /** Keys are relative to each source; result fields use outer.* and inner.*. */
+    public function join(
+        IQueryable $inner,
+        ValueExpression $outerKey,
+        ValueExpression $innerKey,
+        ValueExpression $resultSelector,
+    ): self
+    {
+        return $this->joinQuery('join', $inner, $outerKey, $innerKey, $resultSelector);
+    }
+
+    public function leftJoin(
+        IQueryable $inner,
+        ValueExpression $outerKey,
+        ValueExpression $innerKey,
+        ValueExpression $resultSelector,
+    ): self
+    {
+        return $this->joinQuery('leftJoin', $inner, $outerKey, $innerKey, $resultSelector);
+    }
+
     public function orderBy(ValueExpression $keySelector): self
     {
         return $this->call('orderBy', ['keySelector' => $keySelector, 'descending' => false]);
@@ -98,6 +119,25 @@ final readonly class Queryable implements IQueryable
             throw new \LogicException('The provider did not return an iterable query result.');
         }
         yield from $result;
+    }
+
+    private function joinQuery(
+        string $method,
+        IQueryable $inner,
+        ValueExpression $outerKey,
+        ValueExpression $innerKey,
+        ValueExpression $resultSelector,
+    ): self
+    {
+        if ($inner->provider() !== $this->queryProvider) {
+            throw new \InvalidArgumentException('Joined queries must use the same provider instance.');
+        }
+        return $this->call($method, [
+            'inner' => $inner->expression(),
+            'outerKey' => $outerKey,
+            'innerKey' => $innerKey,
+            'resultSelector' => $resultSelector,
+        ]);
     }
 
     private function call(string $method, array $arguments): self

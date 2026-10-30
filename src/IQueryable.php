@@ -20,6 +20,20 @@ interface IQueryable extends IteratorAggregate
 
     public function select(ValueExpression $selector): self;
 
+    public function join(
+        IQueryable $inner,
+        ValueExpression $outerKey,
+        ValueExpression $innerKey,
+        ValueExpression $resultSelector,
+    ): self;
+
+    public function leftJoin(
+        IQueryable $inner,
+        ValueExpression $outerKey,
+        ValueExpression $innerKey,
+        ValueExpression $resultSelector,
+    ): self;
+
     public function orderBy(ValueExpression $keySelector): self;
 
     public function orderByDescending(ValueExpression $keySelector): self;
